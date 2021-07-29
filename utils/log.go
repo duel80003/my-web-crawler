@@ -8,9 +8,9 @@ import (
 
 var customLog = logrus.New()
 
-type Logger struct {
-	Instance *logrus.Logger
-}
+//type Logger struct {
+//	Instance *logrus.Logger
+//}
 
 func init() {
 	customLog.Out = os.Stdout

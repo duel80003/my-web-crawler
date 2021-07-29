@@ -14,11 +14,13 @@ type StandingCrawlerInfo struct {
 }
 
 type StandingsCrawler struct {
-	Ch chan *StandingCrawlerInfo
+	Ch   chan []*entities.RankingTable
+	Done chan bool
 }
 
 func (s *StandingsCrawler) DoWebCrawl() {
 	defer close(s.Ch)
+	defer close(s.Done)
 	endpoint := utils.GetEnv("STANDINGS_TARGET_ENDPOINT")
 	c := colly.NewCollector()
 	c.WithTransport(&http.Transport{
@@ -57,12 +59,12 @@ func (s *StandingsCrawler) DoWebCrawl() {
 				el.ForEach("td", func(i int, el *colly.HTMLElement) {
 					if i > 0 {
 						text := string(re.ReplaceAll([]byte(el.Text), []byte("")))
-						//logger.Infof("aaaaa --- %s --- %d", text, i)
+						logger.Debugf("aaaaa --- %s --- %d", text, i)
 						tc = append(tc, text)
 					} else {
 						t := el.ChildText("div.sticky_wrap > div.team-w-trophy > a")
 						text := string(re.ReplaceAll([]byte(t), []byte("")))
-						logger.Debugf("aaaaa --- %s --- %d", text, i)
+						logger.Debugf("bbbbb --- %s --- %d", text, i)
 						tc = append(tc, text)
 					}
 				})
@@ -77,10 +79,12 @@ func (s *StandingsCrawler) DoWebCrawl() {
 	c.OnError(func(response *colly.Response, err error) {
 		logger.Infoln("error", err)
 		s.Ch <- nil
+		s.Done <- true
 	})
 	c.OnRequest(func(r *colly.Request) {
 		logger.Infoln("Visiting", r.URL.String())
 	})
 	c.Visit(endpoint)
-	s.Ch <- crawlerInfo
+	s.Ch <- crawlerInfo.Tables
+	s.Done <- true
 }
