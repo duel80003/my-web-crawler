@@ -17,4 +17,5 @@ require (
 	github.com/temoto/robotstxt v1.1.2 // indirect
 	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985
 	google.golang.org/appengine v1.6.7 // indirect
+	github.com/jasonlvhit/gocron v0.0.1
 )
