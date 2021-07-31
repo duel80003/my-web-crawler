@@ -53,12 +53,14 @@ type jsonRes struct {
 
 type PlayerDetailCrawler struct {
 	Ch      chan *CrawlerInfo
+	Done    chan bool
 	Players []*entities.Player
 }
 
 func (p *PlayerDetailCrawler) DoWebCrawl() {
 	var headersChan chan map[string]string
 	defer close(p.Ch)
+	defer close(p.Done)
 	defer close(headersChan)
 	logger.Infof("players count %d", len(p.Players))
 	count := len(p.Players)
@@ -74,8 +76,8 @@ func (p *PlayerDetailCrawler) DoWebCrawl() {
 			time.Sleep(time.Second * 3)
 		}
 	}
-
 	wg.Wait()
+	p.Done <- true
 }
 
 func (p *PlayerDetailCrawler) DoWebCrawlImp(player *entities.Player, headers map[string]string) {
@@ -142,7 +144,6 @@ Loop:
 		PlayerID: player.ID,
 		Data:     m,
 	}
-
 }
 
 func getToken() chan map[string]string {

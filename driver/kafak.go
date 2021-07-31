@@ -13,6 +13,7 @@ var (
 	kafkaHost         = utils.GetEnv("KAKFA_HOST")
 	simplePlayerTopic = utils.GetEnv("SIMPLE_PLAYER_INFO_TOPIC")
 	standingInfoTopic = utils.GetEnv("STANDING_INFO_TOPIC")
+	playerDetailTopic = utils.GetEnv("PLAYER_DETAIL_TOPIC")
 )
 
 //func GetKafkaConnection() *kafka.Conn {
@@ -45,4 +46,8 @@ func SimplePlayerInfo() *kafka.Conn {
 
 func StandingsInfo() *kafka.Conn {
 	return getConnection(standingInfoTopic)
+}
+
+func PlayerDetailInfo() *kafka.Conn {
+	return getConnection(playerDetailTopic)
 }

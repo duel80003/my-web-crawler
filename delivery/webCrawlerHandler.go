@@ -11,42 +11,48 @@ import (
 )
 
 var (
-	logger             = utils.LoggerInstance()
-	simpleInfoProducer = driver.SimplePlayerInfo()
-	standingsInfo      = driver.StandingsInfo()
+	logger                   = utils.LoggerInstance()
+	simpleInfoProducer       = driver.SimplePlayerInfo()
+	standingsInfoProducer    = driver.StandingsInfo()
+	playerDetailInfoProducer = driver.PlayerDetailInfo()
 )
 
 func StartWebCrawler() {
 	logger.Info("Start Web crawl")
 	var wg sync.WaitGroup
+	players := make(chan []*entities.Player)
 	wg.Add(3)
-	go PlayersCrawlerHandler(&wg)
+	go PlayersCrawlerHandler(&wg, players)
 	go StandingsCrawler(&wg)
-	//go PlayerDetailsCrawler(&wg)
+	go PlayerDetailsCrawler(&wg, players)
 	wg.Wait()
 }
 
-func PlayersCrawlerHandler(wg *sync.WaitGroup) {
+func PlayersCrawlerHandler(wg *sync.WaitGroup, playersCh chan<- []*entities.Player) {
 	ch := make(chan entities.Player)
 	done := make(chan bool)
-	go simplePlayerInfoProcess(ch, done)
+	go simplePlayerInfoProcess(ch, done, playersCh)
 	logger.Printf("cralwer players start")
 	crawler := use_case.NewCrawler(&use_case.PlayersCrawler{Ch: ch, Done: done})
 	crawler.DoWebCrawl()
 	wg.Done()
 }
 
-func simplePlayerInfoProcess(ch <-chan entities.Player, done <-chan bool) {
+func simplePlayerInfoProcess(ch <-chan entities.Player, done <-chan bool, playersCh chan<- []*entities.Player) {
+	defer close(playersCh)
+	var players []*entities.Player
 	for {
 		select {
 		case player := <-ch:
 			logger.Printf("player %+v", player)
+			players = append(players, &player)
 			message, _ := json.Marshal(player)
 			simpleInfoProducer.WriteMessages(
 				kafka.Message{Value: message},
 			)
 		case done, ok := <-done:
 			if ok {
+				playersCh <- players
 				logger.Printf("simple player info crawl end. %v", done)
 				break
 			}
@@ -71,7 +77,7 @@ func standingsProcess(ch <-chan []*entities.RankingTable, done <-chan bool) {
 			logger.Printf("tables %+v", tables)
 			if len(tables) > 0 {
 				message, _ := json.Marshal(tables[0])
-				standingsInfo.WriteMessages(
+				standingsInfoProducer.WriteMessages(
 					kafka.Message{Value: message},
 				)
 			}
@@ -84,36 +90,39 @@ func standingsProcess(ch <-chan []*entities.RankingTable, done <-chan bool) {
 	}
 }
 
-//func PlayerDetailsCrawler(topWg *sync.WaitGroup) {
-//	logger.Infof("cralwer player details start")
-//	playerStore := store.New(dbClient)
-//	players, err := playerStore.GetPlayers()
-//	if err != nil {
-//		return
-//	}
-//	logger.Debugf("players %+v, %d", players, len(players))
-//	ch := make(chan *use_case.CrawlerInfo)
-//	var wg sync.WaitGroup
-//	wg.Add(len(players))
-//	go playerDetailsProcess(ch, &wg)
-//	crawler := use_case.NewCrawler(&use_case.PlayerDetailCrawler{
-//		Ch:      ch,
-//		Players: players,
-//	})
-//	crawler.DoWebCrawl()
-//	wg.Wait()
-//	topWg.Done()
-//}
+func PlayerDetailsCrawler(wg *sync.WaitGroup, playersCh <-chan []*entities.Player) {
+	for players := range playersCh {
+		if players != nil {
+			logger.Infof("cralwer player details start")
+			logger.Debugf("players %+v, %d", players, len(players))
+			ch := make(chan *use_case.CrawlerInfo)
+			done := make(chan bool)
+			go playerDetailsProcess(ch, done)
+			crawler := use_case.NewCrawler(&use_case.PlayerDetailCrawler{
+				Ch:      ch,
+				Done:    done,
+				Players: players,
+			})
+			crawler.DoWebCrawl()
+			wg.Done()
+		}
+	}
+}
 
-//
-//func playerDetailsProcess(ch <-chan *use_case.CrawlerInfo, wg *sync.WaitGroup) {
-//	for crawlerInfo := range ch {
-//		if crawlerInfo == nil {
-//			wg.Done()
-//			continue
-//		}
-//		ss := standingsStore.New(redisClient)
-//		ss.SavePlayerDetails(crawlerInfo)
-//		wg.Done()
-//	}
-//}
+func playerDetailsProcess(ch <-chan *use_case.CrawlerInfo, done <-chan bool) {
+	for {
+		select {
+		case playerDetailInfo := <-ch:
+			message, _ := json.Marshal(playerDetailInfo)
+			playerDetailInfoProducer.WriteMessages(
+				kafka.Message{Value: message},
+			)
+
+		case done, ok := <-done:
+			if ok {
+				logger.Printf("simple player info crawl end. %v", done)
+				break
+			}
+		}
+	}
+}
