@@ -61,7 +61,7 @@ func (p *PlayerDetailCrawler) DoWebCrawl() {
 	var headersChan chan map[string]string
 	defer close(p.Ch)
 	defer close(p.Done)
-	defer close(headersChan)
+	//defer close(headersChan)
 	logger.Infof("players count %d", len(p.Players))
 	count := len(p.Players)
 

@@ -2,6 +2,7 @@ package test
 
 import (
 	"my-web-cralwer/delivery"
+	"my-web-cralwer/entities"
 	"sync"
 	"testing"
 )
@@ -9,8 +10,9 @@ import (
 var wg sync.WaitGroup
 
 func TestPlayersCrawlerHandler(t *testing.T) {
+	players := make(chan []*entities.Player)
 	wg.Add(1)
-	go delivery.PlayersCrawlerHandler(&wg)
+	go delivery.PlayersCrawlerHandler(&wg, players)
 	wg.Wait()
 }
 
