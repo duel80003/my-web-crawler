@@ -13,13 +13,17 @@ var playerDetailInfoProducer = driver.PlayerDetailInfo()
 
 func TestPlayerDetailCrawler(t *testing.T) {
 	players := []*entities.Player{
+		//&entities.Player{
+		//	Name: "吳哲源",
+		//	ID:   "0000001515",
+		//},
 		&entities.Player{
-			Name: "吳哲源",
-			ID:   "0000001515",
+			Name: "王威晨",
+			ID:   "0000000929",
 		},
 	}
 
-	t.Log("cralwer player details start")
+	t.Log("crawler player details start")
 	t.Logf("players %+v, %d", players, len(players))
 	ch := make(chan *use_case.CrawlerInfo)
 	done := make(chan bool)

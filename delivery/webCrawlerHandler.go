@@ -41,10 +41,11 @@ func PlayersCrawlerHandler(wg *sync.WaitGroup, playersCh chan<- []*entities.Play
 func simplePlayerInfoProcess(ch <-chan entities.Player, done <-chan bool, playersCh chan<- []*entities.Player) {
 	defer close(playersCh)
 	var players []*entities.Player
+Loop:
 	for {
 		select {
 		case player := <-ch:
-			logger.Printf("player %+v", player)
+			logger.Debugf("player %+v", player)
 			players = append(players, &player)
 			message, _ := json.Marshal(player)
 			simpleInfoProducer.WriteMessages(
@@ -54,7 +55,7 @@ func simplePlayerInfoProcess(ch <-chan entities.Player, done <-chan bool, player
 			if ok {
 				playersCh <- players
 				logger.Printf("simple player info crawl end. %v", done)
-				break
+				break Loop
 			}
 		}
 	}
@@ -71,10 +72,11 @@ func StandingsCrawler(wg *sync.WaitGroup) {
 }
 
 func standingsProcess(ch <-chan []*entities.RankingTable, done <-chan bool) {
+Loop:
 	for {
 		select {
 		case tables := <-ch:
-			logger.Printf("tables %+v", tables)
+			logger.Debugf("tables %+v", tables)
 			if len(tables) > 0 {
 				message, _ := json.Marshal(tables[0])
 				standingsInfoProducer.WriteMessages(
@@ -83,8 +85,8 @@ func standingsProcess(ch <-chan []*entities.RankingTable, done <-chan bool) {
 			}
 		case done, ok := <-done:
 			if ok {
-				logger.Printf("simple player info crawl end. %v", done)
-				break
+				logger.Infof("simple player info crawl end. %v", done)
+				break Loop
 			}
 		}
 	}
@@ -110,6 +112,7 @@ func PlayerDetailsCrawler(wg *sync.WaitGroup, playersCh <-chan []*entities.Playe
 }
 
 func playerDetailsProcess(ch <-chan *use_case.CrawlerInfo, done <-chan bool) {
+Loop:
 	for {
 		select {
 		case playerDetailInfo := <-ch:
@@ -121,7 +124,7 @@ func playerDetailsProcess(ch <-chan *use_case.CrawlerInfo, done <-chan bool) {
 		case done, ok := <-done:
 			if ok {
 				logger.Printf("simple player info crawl end. %v", done)
-				break
+				break Loop
 			}
 		}
 	}
