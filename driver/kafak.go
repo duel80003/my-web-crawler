@@ -16,24 +16,12 @@ var (
 	playerDetailTopic = utils.GetEnv("PLAYER_DETAIL_TOPIC")
 )
 
-//func GetKafkaConnection() *kafka.Conn {
-//	conn, err := kafka.DialLeader(context.Background(), "tcp", "localhost:9092", topic, partition)
-//	if err != nil {
-//		logger.Panicf("Kafka init connection error %s", err)
-//	}
-//	err = conn.SetWriteDeadline(time.Now().Add(10*time.Second))
-//	if err != nil {
-//		logger.Panicf("SetWriteDeadline error %s", err)
-//	}
-//	return conn
-//}
-
 func getConnection(topic string) *kafka.Conn {
 	conn, err := kafka.DialLeader(context.Background(), "tcp", kafkaHost, topic, partition)
 	if err != nil {
 		logger.Panicf("Kafka init connection error %s", err)
 	}
-	err = conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+	err = conn.SetWriteDeadline(time.Now().Add(1 * time.Hour))
 	if err != nil {
 		logger.Panicf("SetWriteDeadline error %s", err)
 	}

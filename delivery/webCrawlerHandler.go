@@ -116,6 +116,7 @@ Loop:
 	for {
 		select {
 		case playerDetailInfo := <-ch:
+			logger.Infof("send message.")
 			message, _ := json.Marshal(playerDetailInfo)
 			playerDetailInfoProducer.WriteMessages(
 				kafka.Message{Value: message},
@@ -123,7 +124,7 @@ Loop:
 
 		case done, ok := <-done:
 			if ok {
-				logger.Printf("simple player info crawl end. %v", done)
+				logger.Infoln("simple player info crawl end. %v", done)
 				break Loop
 			}
 		}
